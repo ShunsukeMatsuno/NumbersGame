@@ -30,7 +30,7 @@ easypackages::libraries('tidyverse', 'ggplot2','NumbersGame')
 # Introduction
 - This note replicates Bird, Karolyi, and Ruchti (BKR; 2019, JAE).
 
-# Simulatind the data
+# Simulating the data
 - Since I don't have access to the original data, I simulate the "observed" data using the estimated parameters in BKR.
 
 ## Parameters
@@ -62,8 +62,7 @@ df_firm <- tibble(
 )%>% 
   mutate(e = case_when(e <= -21 ~ -20.999, e >= 21 ~ 20.999, TRUE ~ e)) %>%     # winsorize
   mutate(bin_e = map_dbl(.x = e, .f = floor)) %>%    # bins
-  mutate(bin_normalized  = bin_e + (20 + 1),    # the left-end bin is normalized (labeled) as 1
-         beta = runif(N, 0, 2 * eta))      # draw of beta
+  mutate(bin_normalized  = bin_e + (20 + 1))    # the left-end bin is normalized (labeled) as 1
 df_firm
 
 ggplot(df_firm, aes(x = e)) +
@@ -77,58 +76,14 @@ ggplot(df_firm, aes(x = e)) +
 $$
 u_{\text {Discrete}}(b, m, \theta)=\sum_{-20}^{20} \phi_{m, \theta}(\varepsilon) \mathcal{B}(b+m+\varepsilon) d \varepsilon-\beta_{b} m^{\gamma}
 $$
-
 ```{r}
-df_manipulation <- tibble(
-  firm = rep(1:N, each = 21),
-  m = rep(0:20, times = N)
-)
-
-df_firm_utility <- left_join(df_firm, df_manipulation)
-
-utility <- df_firm_utility %>% 
-  select(bin_e, m, beta) %>% 
-  mutate(utility = pmap_dbl(.l = ., .f = compute_utility, benefit = benefit, theta = theta)) %>% 
-  pull(utility)
-
-
-df_firm_utility <- df_firm_utility %>% 
-  mutate(utility = utility) %>% 
-  group_by(firm) %>% 
-  mutate(max_utility = if_else(utility == max(utility), 1, 0)) %>% 
-  ungroup() %>% 
-  mutate(m_opt = m * max_utility) %>% 
-  filter(max_utility == 1) %>% 
-  mutate(eps_after = case_when(
-    m_opt == 0 ~ 0,
-    m_opt > 0 ~ extraDistr::rdnorm(N, mean = 0, sd = sqrt((1 + theta[4]*(m_opt - 1)) * theta[3])))
-    ) %>% 
-  mutate(R = bin_e + m_opt + eps_after)
-  
+df_firm_utility <- compute_optimal_manipulation(df_firm, benefit, theta)
 df_firm_utility
-```
-```{r}
-
 ```
 
 ```{r}
 # plot
-df_summarised_R <- df_firm_utility %>% 
-  group_by(R) %>% 
-  summarise(freq_R = n()) %>% 
-  rename(bin = R)
-df_summarised_e <- df_firm_utility %>% 
-  group_by(bin_e) %>% 
-  summarise(freq_e = n()) %>% 
-  rename(bin = bin_e)
-
-df_summarised <- full_join(df_summarised_R, df_summarised_e) %>% 
-  pivot_longer(-bin, names_to = 'type', values_to = 'freq')
-
-g <- ggplot(df_summarised, aes(x = bin, y = freq, fill = type)) +
-  geom_bar(aes(fill = type), stat = 'identity', position = 'dodge', alpha =0.7)+
-  xlim(-20,20)
-plot(g)
+plot_latent_reported(df_firm_utility)
 ```
 
 - The 'empirical' distribution of earnings surprises, $R$, is a bit drastic than the actual empirical distribution.
@@ -143,5 +98,8 @@ qplot(df_firm_utility$R, geom = 'bar', xlim = c(-10,10))
 ```{r}
 theta_new <- theta
 theta_new[1] <- 0.5
+
+df_firm_utility <- compute_optimal_manipulation(df_firm, benefit, theta = theta_new)
+plot_latent_reported(df_firm_utility)
 ```
 
