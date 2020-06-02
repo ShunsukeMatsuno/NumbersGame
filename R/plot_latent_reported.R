@@ -4,9 +4,9 @@ plot_latent_reported <- function(df_firm_utility){
     summarise(freq_R = n()) %>% 
     rename(bin = R)
   df_summarised_e <- df_firm_utility %>% 
-    group_by(bin_e) %>% 
+    group_by(e) %>% 
     summarise(freq_e = n()) %>% 
-    rename(bin = bin_e)
+    rename(bin = e)
   
   df_summarised <- full_join(df_summarised_R, df_summarised_e, by = 'bin') %>% 
     pivot_longer(-bin, names_to = 'type', values_to = 'freq')
