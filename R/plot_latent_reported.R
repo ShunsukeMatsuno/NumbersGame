@@ -8,7 +8,7 @@ plot_latent_reported <- function(df_firm_utility){
     summarise(freq_e = n()) %>% 
     rename(bin = bin_e)
   
-  df_summarised <- full_join(df_summarised_R, df_summarised_e) %>% 
+  df_summarised <- full_join(df_summarised_R, df_summarised_e, by = 'bin') %>% 
     pivot_longer(-bin, names_to = 'type', values_to = 'freq')
   
   g <- ggplot(df_summarised, aes(x = bin, y = freq, fill = type)) +

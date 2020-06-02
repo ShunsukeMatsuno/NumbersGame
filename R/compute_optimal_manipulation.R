@@ -10,7 +10,7 @@ compute_optimal_manipulation <- function(df_firm, benefit, theta){
   )
   
   # join firm-level data
-  df_firm_utility <- left_join(df_firm, df_manipulation)
+  df_firm_utility <- left_join(df_firm, df_manipulation, by = 'firm')
   
   # compute utility 
   utility <- df_firm_utility %>% 

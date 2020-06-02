@@ -36,7 +36,7 @@ easypackages::libraries('tidyverse', 'ggplot2','NumbersGame')
 ## Parameters
 - $\theta = (\eta, \gamma, \psi^2, \zeta)$
 ```{r}
-set.seed(1)
+set.seed(2020)
 
 # Table 4
 eta <- 0.0161   # marginal cost
@@ -54,19 +54,17 @@ benefit <- 1.447
 ```{r}
 # number of firms
 N <- 10000
-sigma2 <- 5
+sigma <- 5
 
 df_firm <- tibble(
   firm = 1:N,
-  e = rnorm(N, 0, sigma2)    # latent earnings surprize
-)%>% 
-  mutate(e = case_when(e <= -21 ~ -20.999, e >= 21 ~ 20.999, TRUE ~ e)) %>%     # winsorize
-  mutate(bin_e = map_dbl(.x = e, .f = floor)) %>%    # bins
+  bin_e = extraDistr::rdnorm(N, mean = 0, sd = sigma) # latent earnings surprize
+  ) %>% 
   mutate(bin_normalized  = bin_e + (20 + 1))    # the left-end bin is normalized (labeled) as 1
 df_firm
 
-ggplot(df_firm, aes(x = e)) +
-  geom_histogram(bins = 41, color = 'white') +
+ggplot(df_firm, aes(x = bin_e)) +
+  geom_bar() +
   xlim(-21, 21)
 ```
 
@@ -95,6 +93,7 @@ qplot(df_firm_utility$R, geom = 'bar', xlim = c(-10,10))
 ```
 
 - See what happens if we increase the marginal cost parameter, $\eta$.
+    - Since manipulation becomes more costly, firms that find manipulation beneficial are limited to just below the zero threshold.
 ```{r}
 theta_new <- theta
 theta_new[1] <- 0.5
