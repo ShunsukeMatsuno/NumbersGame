@@ -155,5 +155,16 @@ df_result_long <- bind_cols(df_result_m_long, df_result_eps_long) %>%
 - Next, I compute the transition matrix, $P$.
 ```{r}
 P <- array(dim = c(20, 20))
+
+for(jj in 1:NROW(P)){
+  # computes each row of P
+  p_b_j <- df_result_long %>% 
+    mutate(j = pmap_int(.l = ., .f = compute_transition, j = jj)) %>% 
+    group_by(e) %>% 
+    summarise(p_b_j = sum(j) / S) %>% 
+    pull(p_b_j)  
+  P[jj,] <- p_b_j
+}
+
 ```
 
