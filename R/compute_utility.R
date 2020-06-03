@@ -1,6 +1,4 @@
 compute_utility <- function(e, m, beta, benefit, theta){
-  # e <- df_firm %>% pull(e)
-  # beta <- df_firm %>% pull(beta)
   if(m == 0){
     utility = (e >= 0) * benefit + (e < 0) * 0
   }else{
