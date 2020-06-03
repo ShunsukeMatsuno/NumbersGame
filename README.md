@@ -6,7 +6,7 @@
 - I currently finished Step 1.
 
 # Files
-- `Replication.Rmd` is the main script. The script is exported as `html` file, which is named `Replication.html`.
+- `rmd/Replication.Rmd` is the main script. The script is exported as `html` file, which is named `rmd/Replication.html`.
     - All the original functions that appear in `Replication.Rmd` is stored in `R` directory.
 - `SummaryBKR.pdf` is a summary of BKR's estimation method.
 - If you have any comments or corrections, please post on Issues or email me (contact info. appears below).
