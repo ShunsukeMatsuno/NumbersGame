@@ -25,7 +25,7 @@ compute_optimal_manipulation_for_e <- function(e, benefit, theta){
   # compute utility 
   utility <- df_firm_utility %>% 
     select(e, m, beta) %>% 
-    mutate(utility = pmap_dbl(.l = ., .f = compute_utility, benefit = benefit, theta = theta)) %>% 
+    mutate(utility = pmap_dbl(.l = ., .f = compute_utility, theta = theta)) %>% 
     pull(utility)
   
   # compute optimal behavior 

@@ -1,5 +1,5 @@
-compute_optimal_manipulation_simulated <- function(df_firm, benefit, theta){
-  # This function is used to compute the optimal bihavior with the simulated data.
+compute_optimal_manipulation_simulated <- function(df_firm, theta){
+  # This function is used to compute the optimal behavior with the simulated data.
   # Since the input is simulated data, we know the latent earnings, e.
   
   
@@ -34,7 +34,7 @@ compute_optimal_manipulation_simulated <- function(df_firm, benefit, theta){
   # compute utility 
   utility <- df_firm_utility %>% 
     select(e, m, beta) %>% 
-    mutate(utility = pmap_dbl(.l = ., .f = compute_utility, benefit = benefit, theta = theta)) %>% 
+    mutate(utility = pmap_dbl(.l = ., .f = compute_utility, theta = theta)) %>% 
     pull(utility)
   
   # compute optimal behavior for negative firms
