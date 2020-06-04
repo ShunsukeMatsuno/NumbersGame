@@ -2,9 +2,9 @@ compute_benefit <- function(R){
   # This function computes the capital market benefit of earnings surprise.
   # Since the estimates of coefficients on polynomial terms are not reported in the origina paper,
   #  I roughly approximate the functional form of Fig. 1. 
-  # You may want to change the funtional form of this function.
+  # You may want to change the fucntional form of this function.
   
-  benefit <- (R < 0) * (0.1 * R -1) + (R >= 0 ) * (0.05 * R + 0.5) 
+  benefit <- (R < 0) * (0.05 * R -1) + (R >= 0 ) * (0.05 * R + 0.5) 
   
   return(benefit)
   

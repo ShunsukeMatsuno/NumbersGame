@@ -1,7 +1,7 @@
-compute_optimal_manipulation_for_e <- function(e, theta){
-  # This function is used to compute the optimal behavior with the 'observed' data.
+compute_optimal_manipulation_for_e <- function(e, theta, S = 1000){
+  # This function is used to simulate the optimal behavior for each bin over [-20, 20]
   # This function computes optimal behavior for given e.
-  # Outpt: optimal amount of manipulation and epsilon. [m_{b,s=1:S}, eps_{b,s=1:S}]  
+  # Output: optimal amount of manipulation and epsilon. [m_{b,s=1:S}, eps_{b,s=1:S}]  
   
   # draw of beta
   df_firm <- tibble(
@@ -35,7 +35,7 @@ compute_optimal_manipulation_for_e <- function(e, theta){
     ungroup() %>% 
     mutate(m_opt = m * max_utility) %>%     # optimal amount of manipulation
     filter(max_utility == 1) %>% 
-    mutate(eps_after = map_dbl(m_opt, generate_shock)) %>%     # uncertanty of manipulation is drawn accordiing to the amount of manipulation 
+    mutate(eps_after = map_dbl(m_opt, generate_shock)) %>%     # uncertainty of manipulation is drawn accordiing to the amount of manipulation 
     mutate(R = e + m_opt + eps_after)      # reported surprise
       
   m_opt <- df_firm_utility %>% pull(m_opt)

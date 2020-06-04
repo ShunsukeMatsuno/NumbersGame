@@ -54,14 +54,16 @@ theta <- c(eta, gamma, psi2, zeta)
 - For the computational ease, I set the number of firms (observations) to $1,000$.
     - In BKR, the number of observations is $49,604$.
     - To get more clear histograms, try set $N=10,000$.
+- `extraDistr::rdnorm` returns `floor(rnorm(mu, sd))`. 
+    - To make the mean of the discretized normal distribution to be one, I set `mu` to 1.
 ```{r}
 # number of firms
-N <- 10000
+N <- 1000
 sigma <- 5
 
 df_firm <- tibble(
   firm = 1:N,
-  e = extraDistr::rdnorm(N, mean = 0, sd = sigma) # latent earnings surprize
+  e = extraDistr::rdnorm(N, mean = 1, sd = sigma) # latent earnings surprise
   ) 
 df_firm
 
@@ -98,7 +100,7 @@ qplot(df_firm_utility$R, geom = 'bar', xlim = c(-11,11), xlab = 'reported')
     - Since manipulation becomes more costly, firms that find manipulation beneficial are limited to just below the zero threshold.
 ```{r}
 theta_new <- theta
-theta_new[1] <- 10 * theta[1]
+theta_new[1] <- .5
 
 df_firm_utility <- compute_optimal_manipulation_simulated(df_firm, theta = theta_new)
 plot_latent_reported(df_firm_utility)
@@ -119,93 +121,35 @@ theta_init <- theta_new
 ```
 
 ## Step 2. Simulate optimal firm behavior
+- I compute the transition matrix, $P$.
 - Considering the computational cost, I set the number of simulations $S$ to be $1,000$.
     - The original paper uses $S=10,000$.
+  
 ```{r, message=FALSE}
-S <- 10000   # number of simulations
-e_vec <- -20:20
-result <- array(dim = c(S, length(e_vec), 2))   # S x 20 x 2 array
+S <- 1000   # number of simulations
 
-# compute m_opt for each e (b)
-for(i in seq_along(e_vec)){
-  result_temp <- compute_optimal_manipulation_for_e(e_vec[i], theta_init)
-  result[,i,1] <- result_temp$m_opt    # the 1st elt of 3rd dim is m_opt
-  result[,i,2] <- result_temp$eps      # the 2nd elt of 3rd dim is epsilon
-}
-
-# transform the result matrix to data frame.
-colnames_e <- as.character(-20:20)    # column names are states (bins)
-df_result_m <- data.frame(result[,,1])
-df_result_eps <- data.frame(result[,,2])
-colnames(df_result_m) <- colnames_e
-colnames(df_result_eps) <- colnames_e
-
-# transform to long data
-df_result_m_long <- df_result_m %>% 
-  pivot_longer(cols = everything(), names_to = 'e', values_to = 'm') %>% 
-  mutate(e = as.integer(e))
-df_result_eps_long <- df_result_eps %>% 
-  pivot_longer(cols = everything(), names_to = 'e', values_to = 'eps') %>% 
-  mutate(e = as.integer(e))
-
-# bind both data for m and eps
-df_result_long <- bind_cols(df_result_m_long, df_result_eps_long) %>% 
-  select(e, m, eps)
+P <- compute_P(theta_init, S)
 ```
 
-- Next, I compute the transition matrix, $P$.
-```{r}
-P <- array(dim = c(41, 41))
-
-for(jj in 1:NROW(P)){
-  # computes each row of P
-  p_b_j <- df_result_long %>% 
-    mutate(flag_j = pmap_int(.l = ., .f = compute_transition, j = jj)) %>% 
-    group_by(e) %>% 
-    summarise(p_b_j = sum(flag_j) / S) %>% 
-    pull(p_b_j)  
-  P[jj,] <- p_b_j
-}
-```
 
 ## Step 3. Recover the latent earnigs distribution
 - I recover the latent earnings distribution by inverting $P$.
 - Since some bins do not contain any firms, I have to make rows for such bins.
 - Observed bins that are outside $[-20,20]$ is excluded from the data.
 ```{r}
-# observed bins
-df_pi_observed <- df_observed %>% 
-  filter(R <= 20 & R > -20) %>% 
-  group_by(R) %>% 
-  summarise(count = n()) %>% 
-  rename(bin = R)
-
-bins_observed <- df_pi_observed %>% pull(bin) 
-
-# unobserved bins
-bins_unobserved <- setdiff(-20:20, bins_observed) 
-
-df_pi_unobserved <- tibble(
-  bin = bins_unobserved,
-  count = 0
-)
-
-# merge them
-df_pi = bind_rows(df_pi_unobserved, df_pi_observed) %>% 
-  arrange(bin) %>% 
-  rename(count_R = count)    # pi is observed (reported) surprise
-
+df_pi <- compute_pi(df_observed)
 ```
+
 
 - Then, we can invert and obtain the latent distribution.
+
 ```{r}
-df_x <- tibble(
-  bin = -20:20,
-  count_e = solve(P) %*% df_pi$count_R    # x is latent earnings
-)
+df_x <- compute_x(P, df_pi)
 ```
 
+
 - Plot to compare $x$ and $\pi$.
+
 ```{r}
 df_pi_x <- full_join(df_pi, df_x, by = 'bin') %>% 
   pivot_longer(-bin, names_to = 'type', values_to = 'freq')
@@ -216,7 +160,52 @@ g <- ggplot(df_pi_x, aes(x = bin, y = freq, fill = type)) +
   scale_fill_hue(name = "type", labels = c(count_e = "inverted latent", count_R ='reported'))
 
 plot(g)
-
 ```
 
+## Step 4 Optimizetion
+- Lastly, using GMM (more precisely, SMM), I estimate the parameter.
+- The objective function is 
+$$
+L(\theta) = \left[\left(\begin{array}{l}
+\pi\\
+\boldsymbol{x}_{S}(\theta)_{(2,\ldots T)}
+\end{array}\right)-\left(\begin{array}{l}
+\boldsymbol{x}_{S}(\theta)\\
+\boldsymbol{x}_{S}(\theta)_{(1,\ldots T-1)}
+\end{array}\right)\right]^{\prime}\Omega\left[\left(\begin{array}{l}
+\pi\\
+\boldsymbol{x}_{S}(\theta)_{(2,\ldots T)}
+\end{array}\right)-\left(\begin{array}{l}
+\boldsymbol{x}_{S}(\theta)\\
+\boldsymbol{x}_{S}(\theta)_{(1,\ldots T-1)}
+\end{array}\right)\right]
+$$
+```{r}
+GMM_objective(theta_init, df_observed)
+```
+
+- FInally, I optimize the GMM objective function.
+```{r GMM, cache=TRUE}
+optim_result <- optim(par = theta_init,
+                      fn = GMM_objective,
+                      df_observed = df_observed,
+                      method = 'Nelder-Mead')
+optim_result
+```
+
+- Let's see the shape of objective function w.r.t. each parameter.
+```{r}
+eta <- seq(0.01, 1.5, .1)
+plot_objFunc(theta, 1, eta, df_observed)
+
+gamma <- seq(1, 2.5, .1)
+plot_objFunc(theta, 2, gamma, df_observed)
+
+psi2 <- seq(0.1, 1.5, .1)
+plot_objFunc(theta, 3, psi2, df_observed)
+
+zeta <- seq(3, 5, .1)
+plot_objFunc(theta, 4, zeta, df_observed)
+
+```
 
