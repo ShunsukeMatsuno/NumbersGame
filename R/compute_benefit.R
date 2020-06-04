@@ -4,7 +4,7 @@ compute_benefit <- function(R){
   #  I roughly approximate the functional form of Fig. 1. 
   # You may want to change the funtional form of this function.
   
-  benefit <- (R < 0) * (0.1 * R -0.5) + (R >= 0 & R < 10) * (0.15 * R + 0.5) # + (R >= 10) * (0.2 * R + 3)
+  benefit <- (R < 0) * (0.1 * R -1) + (R >= 0 ) * (0.05 * R + 0.5) 
   
   return(benefit)
   

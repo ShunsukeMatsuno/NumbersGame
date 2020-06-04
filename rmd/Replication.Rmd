@@ -62,8 +62,7 @@ sigma <- 5
 df_firm <- tibble(
   firm = 1:N,
   e = extraDistr::rdnorm(N, mean = 0, sd = sigma) # latent earnings surprize
-  ) %>% 
-  mutate(bin_normalized  = e + (20 + 1))    # the left-end bin is normalized (labeled) as 1
+  ) 
 df_firm
 
 ggplot(df_firm, aes(x = e)) +
@@ -92,14 +91,14 @@ plot_latent_reported(df_firm_utility)
     - This is because my simulation assumes that the empirical distribution is solely determined by the optimization behavior of BKR's model, while in reality variety of other factors come into play.
     
 ```{r}
-qplot(df_firm_utility$R, geom = 'bar', xlim = c(-11,11))
+qplot(df_firm_utility$R, geom = 'bar', xlim = c(-11,11), xlab = 'reported')
 ```
 
 - See what happens if we increase the marginal cost parameter, $\eta$.
     - Since manipulation becomes more costly, firms that find manipulation beneficial are limited to just below the zero threshold.
 ```{r}
 theta_new <- theta
-theta_new[1] <- 0.5
+theta_new[1] <- 10 * theta[1]
 
 df_firm_utility <- compute_optimal_manipulation_simulated(df_firm, theta = theta_new)
 plot_latent_reported(df_firm_utility)
@@ -116,24 +115,26 @@ df_observed
 ## Step 1. Candidate $\theta$
 - I set the initial $\theta$ to be the true $\theta$.
 ```{r}
-theta_init <- theta
+theta_init <- theta_new
 ```
 
 ## Step 2. Simulate optimal firm behavior
 - Considering the computational cost, I set the number of simulations $S$ to be $1,000$.
     - The original paper uses $S=10,000$.
 ```{r, message=FALSE}
-S <- 1000   # number of simulations
-e_vec <- -20:-1    # only firms with negative state considers manipulation
+S <- 10000   # number of simulations
+e_vec <- -20:20
 result <- array(dim = c(S, length(e_vec), 2))   # S x 20 x 2 array
+
+# compute m_opt for each e (b)
 for(i in seq_along(e_vec)){
-  result_temp <- compute_optimal_manipulation_for_e(e_vec[i], benefit, theta_init)
+  result_temp <- compute_optimal_manipulation_for_e(e_vec[i], theta_init)
   result[,i,1] <- result_temp$m_opt    # the 1st elt of 3rd dim is m_opt
   result[,i,2] <- result_temp$eps      # the 2nd elt of 3rd dim is epsilon
 }
 
 # transform the result matrix to data frame.
-colnames_e <- as.character(-20:-1)    # column names are states (bins)
+colnames_e <- as.character(-20:20)    # column names are states (bins)
 df_result_m <- data.frame(result[,,1])
 df_result_eps <- data.frame(result[,,2])
 colnames(df_result_m) <- colnames_e
@@ -154,17 +155,68 @@ df_result_long <- bind_cols(df_result_m_long, df_result_eps_long) %>%
 
 - Next, I compute the transition matrix, $P$.
 ```{r}
-P <- array(dim = c(20, 20))
+P <- array(dim = c(41, 41))
 
 for(jj in 1:NROW(P)){
   # computes each row of P
   p_b_j <- df_result_long %>% 
-    mutate(j = pmap_int(.l = ., .f = compute_transition, j = jj)) %>% 
+    mutate(flag_j = pmap_int(.l = ., .f = compute_transition, j = jj)) %>% 
     group_by(e) %>% 
-    summarise(p_b_j = sum(j) / S) %>% 
+    summarise(p_b_j = sum(flag_j) / S) %>% 
     pull(p_b_j)  
   P[jj,] <- p_b_j
 }
+```
+
+## Step 3. Recover the latent earnigs distribution
+- I recover the latent earnings distribution by inverting $P$.
+- Since some bins do not contain any firms, I have to make rows for such bins.
+- Observed bins that are outside $[-20,20]$ is excluded from the data.
+```{r}
+# observed bins
+df_pi_observed <- df_observed %>% 
+  filter(R <= 20 & R > -20) %>% 
+  group_by(R) %>% 
+  summarise(count = n()) %>% 
+  rename(bin = R)
+
+bins_observed <- df_pi_observed %>% pull(bin) 
+
+# unobserved bins
+bins_unobserved <- setdiff(-20:20, bins_observed) 
+
+df_pi_unobserved <- tibble(
+  bin = bins_unobserved,
+  count = 0
+)
+
+# merge them
+df_pi = bind_rows(df_pi_unobserved, df_pi_observed) %>% 
+  arrange(bin) %>% 
+  rename(count_R = count)    # pi is observed (reported) surprise
 
 ```
+
+- Then, we can invert and obtain the latent distribution.
+```{r}
+df_x <- tibble(
+  bin = -20:20,
+  count_e = solve(P) %*% df_pi$count_R    # x is latent earnings
+)
+```
+
+- Plot to compare $x$ and $\pi$.
+```{r}
+df_pi_x <- full_join(df_pi, df_x, by = 'bin') %>% 
+  pivot_longer(-bin, names_to = 'type', values_to = 'freq')
+
+g <- ggplot(df_pi_x, aes(x = bin, y = freq, fill = type)) +
+  geom_bar(aes(fill = type), stat = 'identity', position = 'dodge', alpha =0.7)+
+  xlim(-20,20) +
+  scale_fill_hue(name = "type", labels = c(count_e = "inverted latent", count_R ='reported'))
+
+plot(g)
+
+```
+
 

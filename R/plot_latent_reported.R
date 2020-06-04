@@ -13,6 +13,7 @@ plot_latent_reported <- function(df_firm_utility){
   
   g <- ggplot(df_summarised, aes(x = bin, y = freq, fill = type)) +
     geom_bar(aes(fill = type), stat = 'identity', position = 'dodge', alpha =0.7)+
-    xlim(-20,20)
+    xlim(-21,21) +
+    scale_fill_hue(name = "type", labels = c(freq_e = "latent", freq_R ='reported')) 
   plot(g)
 }

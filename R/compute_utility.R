@@ -7,7 +7,7 @@ compute_utility <- function(e, m, beta, theta){
     eps <- -20:20
     prob_eps <- extraDistr::ddnorm(eps, mean = 0, sd = sqrt( (1 + theta[4]*(m - 1)) * theta[3]))
     report <- e + m + eps
-    E_benefit <- sum(prob_eps * ((report >= 0) * compute_benefit(report) + (report < 0) * 0))
+    E_benefit <- sum(prob_eps * compute_benefit(report))
     cost <- beta * m^theta[2]
     utility <- E_benefit - cost
   }
