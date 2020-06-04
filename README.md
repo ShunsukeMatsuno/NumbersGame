@@ -13,5 +13,5 @@
 
 # Contact Information
 - Name: Shunsuke Matsuno
-- Affiliation: The University of Tokyo, Graduate School of Economics, Second-year master's student
+- Affiliation: The University of Tokyo, Graduate School of Economics, Second-year Master's Student
 - Contact: [smatsuno@g.ecc.u-tokyo.ac.jp](mailto:smatsuno@g.ecc.u-tokyo.ac.jp)
