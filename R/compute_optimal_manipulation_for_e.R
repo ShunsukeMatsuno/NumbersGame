@@ -27,19 +27,20 @@ compute_optimal_manipulation_for_e <- function(e, theta, S = 1000){
     mutate(utility = pmap_dbl(.l = ., .f = compute_utility, theta = theta)) %>% 
     pull(utility)
   
-  # compute optimal behavior 
-  df_firm_utility <- df_firm_utility %>% 
+  # compute optimal behavior
+  df_firm_utility <- df_firm_utility %>%
     mutate(utility = utility) %>%     # computed utility
-    group_by(firm) %>% 
+    group_by(firm) %>%
     mutate(max_utility = if_else(utility == max(utility), 1, 0)) %>%     # indicating max utility
-    ungroup() %>% 
+    ungroup() %>%
     mutate(m_opt = m * max_utility) %>%     # optimal amount of manipulation
-    filter(max_utility == 1) %>% 
-    mutate(eps_after = map_dbl(m_opt, generate_shock)) %>%     # uncertainty of manipulation is drawn accordiing to the amount of manipulation 
+    filter(max_utility == 1) %>%
+    mutate(eps_after = map2_dbl(m_opt, e, generate_shock)) %>%     # uncertainty of manipulation is drawn according to the amount of manipulation
     mutate(R = e + m_opt + eps_after)      # reported surprise
       
   m_opt <- df_firm_utility %>% pull(m_opt)
-  eps <- df_firm_utility %>% pull(eps_after)
+  eps <- df_firm_utility %>% pull(eps_after) 
+  R <- df_firm_utility %>% pull(R)
   
-  return(list(m_opt = m_opt, eps = eps))
+  return(list(m_opt = m_opt, eps = eps, R = R))
 }

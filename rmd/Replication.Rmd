@@ -195,7 +195,7 @@ optim_result
 
 - Let's see the shape of objective function w.r.t. each parameter.
 ```{r}
-eta <- seq(0.01, 1.5, .1)
+eta <- seq(0.7, 1.8, .1)
 plot_objFunc(theta, 1, eta, df_observed)
 
 gamma <- seq(1, 2.5, .1)
