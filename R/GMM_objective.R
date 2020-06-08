@@ -24,6 +24,9 @@ GMM_objective <- function(theta, df_observed, S = 1000){
   obj <- c(pi - x, smoothness)
   
   # GMM objective 
-  # For simplicity, I use the identity matrix as a weighting matrix.
+  
+  # weighting matrix
+  
+  
   return(sum(obj^2))
 }

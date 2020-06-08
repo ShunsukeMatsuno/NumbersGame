@@ -3,7 +3,7 @@ compute_x <- function(P, df_pi){
   
   df_x <- tibble(
     bin = -20:20,
-    count_e = as.numeric(solve(P) %*% df_pi$count_R)    # x is latent earnings
+    count_e = as.numeric(solve(P) %*% df_pi$count_R)    # e is latent earnings distribution
   )
   
   return(df_x)

@@ -31,9 +31,9 @@ compute_optimal_manipulation_simulated <- function(df_firm, theta){
     group_by(firm) %>% 
     mutate(max_utility = if_else(utility == max(utility), 1, 0)) %>%     # indicating max utility
     ungroup() %>% 
-    mutate(m_opt = m * max_utility) %>%     # optimal amout of manipulation
+    mutate(m_opt = m * max_utility) %>%     # optimal amount of manipulation
     filter(max_utility == 1) %>% 
-    mutate(eps_after = map2_dbl(m_opt, e, generate_shock)) %>%    # uncertanty of manipulation is drawn accordiing to the amount of manipulation 
+    mutate(eps_after = map2_dbl(m_opt, e, generate_shock)) %>%    # uncertainty of manipulation is drawn according to the amount of manipulation 
     mutate(R = e + m_opt + eps_after) %>%     # report surprise
     select(firm, e, beta, m_opt, eps_after, R)
   
