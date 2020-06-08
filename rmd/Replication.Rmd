@@ -55,20 +55,30 @@ theta <- c(eta, gamma, psi2, zeta)
     - In BKR, the number of observations is $49,604$.
 - `extraDistr::rdnorm` returns `floor(rnorm(mu, sd))`. 
     - To make the mean of the discretized normal distribution to be one, I set `mu` to 1.
+    
+- I use the following multinomial distribution as a discretized normal:
+$$
+e \sim \textit{Multi}(N, 1, P)\\
+\mathcal{X} = \{ -20,-19,\dots,0,\dots,19,20 \} \\
+P = (\phi(-20),\dots,\phi(20))\qquad (\text{normilized})
+$$
 ```{r}
 # number of firms
 N <- 10000
 sigma <- 5
 
-df_firm <- tibble(
-  firm = 1:N,
-  e = extraDistr::rdnorm(N, mean = 1, sd = sigma) # latent earnings surprise
-  ) 
+df_firm <- data.frame(t(rmultinom(N, 1, dnorm(-20:20, 0, 5))))   # multinomial dist
+colnames(df_firm) <- as.character(-20:20)
+e <- apply(df_firm, 1, function(x) colnames(df_firm)[which(x == 1)])
+df_firm <- tibble(df_firm) %>% 
+  mutate(firm = 1:N, e = as.numeric(e)) %>% 
+  select(firm, e)
 df_firm
 
 ggplot(df_firm, aes(x = e)) +
   geom_bar() +
   xlim(-21, 21)
+
 ```
 
 ## Manipulation
