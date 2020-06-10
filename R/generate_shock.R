@@ -9,8 +9,9 @@ generate_shock <- function(m_opt, e){
                                       a = - 20 - (m_opt + e), 
                                       b = 21 - (m_opt + e),   # since we are taking floor, the upper bd of continuous value is 20.999
                                       mean = 0,
-                                      sd = sqrt( sqrt((1 + theta[4]*(m_opt - 1)) * theta[3]) )
-                                      ))
+                                      sd = sqrt( (1 + theta[4]*(m_opt - 1)) * theta[3] ) 
+                                      )
+                )
   }
   return(eps)
 }

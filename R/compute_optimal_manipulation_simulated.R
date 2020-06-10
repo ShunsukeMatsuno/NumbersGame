@@ -1,11 +1,11 @@
-compute_optimal_manipulation_simulated <- function(df_firm, theta){
+compute_optimal_manipulation_simulated <- function(df_firm, theta, S){
   # This function is used to compute the optimal behavior with the simulated data.
   # Since the input is simulated data, we know the latent earnings, e.
   
   
   # draw of beta
   df_firm <- df_firm %>% 
-    mutate(beta = runif(N, 0, 2 * theta[1]))
+    mutate(beta = runif(S, 0, 2 * theta[1]))
   
   
   # the amount of manipulation ranging from 0 to 40 - e for each firm

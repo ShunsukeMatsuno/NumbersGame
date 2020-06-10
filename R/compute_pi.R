@@ -1,9 +1,8 @@
 compute_pi <- function(df_observed){
-  # This function returns \pi, the empirical earnings surprise distibution.
+  # This function returns \pi, the empirical earnings surprise distrbution.
   
   # observed bins
   df_pi_observed <- df_observed %>% 
-    filter(R <= 20 & R > -20) %>% 
     group_by(R) %>% 
     summarise(count = n()) %>% 
     rename(bin = R)

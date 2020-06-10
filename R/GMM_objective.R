@@ -2,7 +2,7 @@ GMM_objective <- function(theta, df_observed, S = 1000){
   # This function returns the GMM objective function ('criterion function') to optimize theta.
   
   # recover P
-  P <- compute_P(theta, S = 1000)
+  P <- compute_P(theta, S)
   
   # observed distribution
   df_pi <- compute_pi(df_observed)

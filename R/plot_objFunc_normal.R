@@ -1,4 +1,4 @@
-plot_objFunc <- function(theta, index, param_vec, df_observed, S = 1000){
+plot_objFunc_normal <- function(theta, index, param_vec, df_simulated, df_observed, weight = FALSE, S = 1000){
   # This function plots the objective function for each value of parameter.
   # index = 1 (eta; marginal cost),
   #         2 (gamma; curvature),
@@ -12,7 +12,7 @@ plot_objFunc <- function(theta, index, param_vec, df_observed, S = 1000){
   for(i in seq_along(param_vec)){
     theta_temp <- theta
     theta_temp[index] <- param_vec[i]
-    obj[i] <- GMM_objective(theta_temp, df_observed, S)
+    obj[i] <- criterion_normal(theta_temp, df_simulated, df_observed, weight = TRUE, S)
   }
   
   # To plot obj. func., make a data frame.
