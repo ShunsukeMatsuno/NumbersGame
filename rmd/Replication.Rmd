@@ -115,7 +115,7 @@ qplot(df_firm_utility$R, geom = 'bar', xlim = c(-11,11), xlab = 'reported')
 theta_new <- theta
 theta_new[1] <- 1
 
-df_firm_utility_new <- compute_optimal_manipulation_simulated(df_firm, theta = theta_new)
+df_firm_utility_new <- compute_optimal_manipulation_simulated(df_firm, theta = theta_new, S = N)
 plot_latent_reported(df_firm_utility_new)
 qplot(df_firm_utility_new$R, geom = 'bar', xlim = c(-11,11), xlab = 'reported')
 ```
@@ -205,7 +205,7 @@ GMM_objective(theta_init, df_observed)
 optim_result <- optim(par = c(0.5, 2, 1, 4),
                       fn = GMM_objective,
                       df_observed = df_observed,
-                      S = S,
+                      S = 100000,
                       method = 'Nelder-Mead')
 
 # optim_result <- optim(par = c(0.5, 2, 1, 4),
@@ -220,17 +220,19 @@ optim_result
 
 - Let's see the shape of objective function w.r.t. each parameter.
 ```{r}
+S <- 100000
+
 eta <- seq(0.2, 1, .05)
-plot_objFunc(theta, 1, eta, df_observed)
+plot_objFunc(theta, 1, eta, df_observed, S = S, parallel = TRUE)
 
 gamma <- seq(1, 5, .1)
-plot_objFunc(theta, 2, gamma, df_observed)
+plot_objFunc(theta, 2, gamma, df_observed, S = S, parallel = TRUE)
 
 psi2 <- seq(0.1, 1.5, .1)
-plot_objFunc(theta, 3, psi2, df_observed)
+plot_objFunc(theta, 3, psi2, df_observed, S = S, parallel = TRUE)
 
 zeta <- seq(3, 5, .1)
-plot_objFunc(theta, 4, zeta, df_observed)
+plot_objFunc(theta, 4, zeta, df_observed, S = S, parallel = TRUE)
 
 ```
 
@@ -240,64 +242,62 @@ plot_objFunc(theta, 4, zeta, df_observed)
 ### Original simulated obj
 - The number of simulation $S$ should be at least $100,000$ to get reasonable result.
     - We need to specify the variance, which I assume to 5
-
 ```{r}
 # simulate data
 S <- 100000
 df_simulated <- simulate_firm(sigma, S)
 
-eta <- seq(0.2, 1, .1)
-plot_objFunc_CMD(theta, 1, eta,  df_observed = df_observed, df_simulated = df_simulated, S = S)
-
-gamma <- seq(1, 5, .1)
-plot_objFunc_CMD(theta, 2, gamma, df_simulated, df_observed,  S = S)
-
-psi2 <- seq(0.1, 1.5, .05)
-plot_objFunc_CMD(theta, 3, psi2, df_simulated, df_observed,  S = S)
-
-zeta <- seq(3, 5, .05)
-plot_objFunc_CMD(theta, 4, zeta, df_simulated, df_observed,  S = S)
+optim_result <- optim(par = c(0.5, 2, 1, 4),
+                      fn = CMD_obj,
+                      df_observed = df_observed,
+                      df_simulated = df_simulated,
+                      S = S,
+                      method = 'Nelder-Mead')
+optim_result
 ```
-
-
+    
 
 ```{r}
-gamma <- seq(1, 3, .1)
-obj <- numeric(length(gamma))
+eta <- seq(0.2, 1, .1)
+plot_objFunc_CMD(theta, 1, eta,  df_observed = df_observed, df_simulated = df_simulated, S = S, parallel = TRUE)
 
-for(i in seq_along(eta)){
-  theta_temp <- theta
-  theta_temp[2] <- gamma[i]
-  obj[i] <- CMD_obj(theta = theta_temp, df_observed = df_observed, df_simulated = df_simulated, S = S)
-}
-qplot(gamma, obj)
+gamma <- seq(1, 5, .1)
+plot_objFunc_CMD(theta, 2, gamma, df_simulated, df_observed,  S = S, parallel = TRUE)
+
+psi2 <- seq(0.1, 1.5, .1)
+plot_objFunc_CMD(theta, 3, psi2, df_simulated, df_observed,  S = S, parallel = TRUE)
+
+zeta <- seq(3, 5, .1)
+plot_objFunc_CMD(theta, 4, zeta, df_simulated, df_observed,  S = S, parallel = TRUE)
 ```
 
 
 
 #### parallel
 ```{r}
-# S <- 10000
-# 
-# eta <- seq(0.2, 1, .05)
-# 
-# # store the values of obj. func. to `obj`
-# obj <- numeric(length(eta))
-# 
-# # compute onj. func. for each parameter
-# library(doParallel)
-# cores = parallel::detectCores(logical = FALSE)
-# doParallel::registerDoParallel(cores)
-# 
-# 
-# 
-# foreach (i = seq_along(eta),
-#         .packages = c('dplyr', 'purrr', 'NumbersGame')) %dopar% {
-#   theta_temp <- theta
-#   theta_temp[1] <- eta[i]
-#   obj[i] <- NumbersGame::CMD_obj(theta, df_observed, df_simulated, S)
-# }
-# 
-# qplot(eta, obj)
+# simulate data
+S <- 100
+df_simulated <- simulate_firm(sigma, S)
+
+eta <- seq(0.2, 1, .05)
+
+# store the values of obj. func. to `obj`
+obj <- numeric(length(eta))
+
+# compute onj. func. for each parameter
+library(doParallel)
+cores = parallel::detectCores(logical = FALSE)
+doParallel::registerDoParallel(cores)
+
+
+
+obj = foreach (i = seq_along(eta),
+        .packages = c('dplyr', 'purrr', 'NumbersGame')) %dopar% {
+  theta_temp <- theta
+  theta_temp[1] <- eta[i]
+  NumbersGame::CMD_obj(theta, df_observed, df_simulated, S)
+}
+
+qplot(eta, obj)
 ```
 

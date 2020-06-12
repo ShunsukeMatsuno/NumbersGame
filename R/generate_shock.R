@@ -1,4 +1,4 @@
-generate_shock <- function(m_opt, e){
+generate_shock <- function(m_opt, e, theta){
   # This function generates uncertainty according to the chosen amount of manipulation.
   if(m_opt == 0){
     # If the firm decides no to manipulate, there is no uncertainty 

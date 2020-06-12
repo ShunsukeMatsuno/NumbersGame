@@ -1,19 +1,45 @@
-plot_objFunc_CMD <- function(theta, index, param_vec, df_simulated, df_observed,  S){
+plot_objFunc_CMD <- function(theta, index, param_vec, df_simulated, df_observed,  S, parallel = FALSE){
   # This function plots the objective function for each value of parameter.
   # index = 1 (eta; marginal cost),
   #         2 (gamma; curvature),
   #         3 (psi2; variance),
   #         4 (zeta; variance multiplier)
   
-  # store the values of obj. func. to `obj`
-  obj <- numeric(length(param_vec))
+
   
-  # compute onj. func. for each parameter
-  for(i in seq_along(param_vec)){
-    theta_temp <- theta
-    theta_temp[index] <- param_vec[i]
-    obj[i] <- CMD_obj(theta = theta_temp, df_observed = df_observed, df_simulated = df_simulated, S = S)
+  if(parallel == TRUE){
+    ##### parallel computation ######
+    # config
+    library(doParallel)
+    
+    cores = parallel::detectCores(logical = FALSE)
+    doParallel::registerDoParallel(cores)
+    
+    obj = foreach (i = seq_along(param_vec),
+                   .packages = c('dplyr', 'purrr', 'NumbersGame')) %dopar% 
+          {
+                     theta_temp <- theta
+                     theta_temp[index] <- param_vec[i]
+                     NumbersGame::CMD_obj(theta_temp, df_observed, df_simulated, S)
+                   }
+    obj = unlist(obj)
+    
+    # un-register core
+    registerDoSEQ()
+    
+  }else{
+    ##### sequenctial computation #####
+    # store the values of obj. func. to `obj`
+    obj <- numeric(length(param_vec))
+    
+    # compute onj. func. for each parameter
+    for(i in seq_along(param_vec)){
+      theta_temp <- theta
+      theta_temp[index] <- param_vec[i]
+      obj[i] <- CMD_obj(theta = theta_temp, df_observed = df_observed, df_simulated = df_simulated, S = S)
+    }
   }
+
   
   # To plot obj. func., make a data frame.
   df_obj <- tibble(
