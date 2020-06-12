@@ -247,7 +247,7 @@ plot_objFunc(theta, 4, zeta, df_observed, S = S, parallel = TRUE)
 S <- 100000
 df_simulated <- simulate_firm(sigma, S)
 
-optim_result <- optim(par = c(0.5, 2, 1, 4),
+optim_result <- optim(par = c(0.7, 2, 1, 4),
                       fn = CMD_obj,
                       df_observed = df_observed,
                       df_simulated = df_simulated,
@@ -267,7 +267,7 @@ plot_objFunc_CMD(theta, 2, gamma, df_simulated, df_observed,  S = S, parallel = 
 psi2 <- seq(0.1, 1.5, .1)
 plot_objFunc_CMD(theta, 3, psi2, df_simulated, df_observed,  S = S, parallel = TRUE)
 
-zeta <- seq(3, 5, .1)
+zeta <- seq(0, 10, 1)
 plot_objFunc_CMD(theta, 4, zeta, df_simulated, df_observed,  S = S, parallel = TRUE)
 ```
 
@@ -291,8 +291,9 @@ doParallel::registerDoParallel(cores)
 
 
 
-obj = foreach (i = seq_along(eta),
-        .packages = c('dplyr', 'purrr', 'NumbersGame')) %dopar% {
+obj <- foreach (i = seq_along(eta),
+        .packages = c('dplyr', 'purrr', 'NumbersGame'),
+        .combine = 'rbind') %dopar% {
   theta_temp <- theta
   theta_temp[1] <- eta[i]
   NumbersGame::CMD_obj(theta, df_observed, df_simulated, S)
