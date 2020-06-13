@@ -9,22 +9,22 @@ plot_objFunc <- function(theta, index, param_vec, df_observed, S = 1000, paralle
   
   if(parallel == TRUE){
       ##### parallel computation ######
-      # config
-      library(doParallel)
-      cores = parallel::detectCores(logical = FALSE)
-      doParallel::registerDoParallel(cores)
+    ## register
+    library(doParallel)
+    cl <- parallel::makePSOCKcluster(4)
+    doParallel::registerDoParallel(cl)
       
       obj = foreach (i = seq_along(param_vec),
                      .packages = c('dplyr', 'purrr', 'NumbersGame', 'tidyr')) %dopar% 
         {
           theta_temp <- theta
-          theta_temp[1] <- param_vec[i]
+          theta_temp[index] <- param_vec[i]
           NumbersGame::GMM_objective(theta, df_observed, S)
         }
       obj = unlist(obj)
       
-      # un-register core
-      registerDoSEQ()
+      ## kill finished tasks
+      parallel::stopCluster(cl)
       
   }else{
       ##### sequenctial computation #####

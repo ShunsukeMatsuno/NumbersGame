@@ -8,14 +8,17 @@ compute_P <- function(theta, S = 1000, parallel = TRUE){
     
     ## register
     library(doParallel)
-    cores = parallel::detectCores(logical = FALSE)
-    doParallel::registerDoParallel(cores)
+    cl <- parallel::makePSOCKcluster(4)
+    doParallel::registerDoParallel(cl)
     
     result <- foreach (i = seq_along(e_vec),
                     .packages = c('dplyr', 'purrr', 'NumbersGame','tidyr'),
                     .combine = 'cbind') %dopar% {
                       compute_optimal_manipulation_for_e(e_vec[i], theta, S)$R
                     }
+    
+    ## kill finished tasks
+    parallel::stopCluster(cl)
   }else{
     # sequential computation
     for(i in seq_along(e_vec)){

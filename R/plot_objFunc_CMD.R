@@ -9,11 +9,10 @@ plot_objFunc_CMD <- function(theta, index, param_vec, df_simulated, df_observed,
   
   if(parallel == TRUE){
     ##### parallel computation ######
-    # config
+    ## register
     library(doParallel)
-    
-    cores = parallel::detectCores(logical = FALSE)
-    doParallel::registerDoParallel(cores)
+    cl <- parallel::makePSOCKcluster(4)
+    doParallel::registerDoParallel(cl)
     
     obj = foreach (i = seq_along(param_vec),
                    .packages = c('dplyr', 'purrr', 'NumbersGame')) %dopar% 
@@ -24,8 +23,8 @@ plot_objFunc_CMD <- function(theta, index, param_vec, df_simulated, df_observed,
                    }
     obj = unlist(obj)
     
-    # un-register core
-    registerDoSEQ()
+    ## kill finished tasks
+    parallel::stopCluster(cl)
     
   }else{
     ##### sequenctial computation #####
