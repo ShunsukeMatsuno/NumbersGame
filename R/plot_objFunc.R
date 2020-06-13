@@ -6,39 +6,17 @@ plot_objFunc <- function(theta, index, param_vec, df_observed, S = 1000, paralle
   #         4 (zeta; variance multiplier)
   
   
+  ##### sequenctial computation #####
+  # store the values of obj. func. to `obj`
+  obj <- numeric(length(param_vec))
   
-  if(parallel == TRUE){
-      ##### parallel computation ######
-    ## register
-    library(doParallel)
-    cl <- parallel::makePSOCKcluster(4)
-    doParallel::registerDoParallel(cl)
-      
-      obj = foreach (i = seq_along(param_vec),
-                     .packages = c('dplyr', 'purrr', 'NumbersGame', 'tidyr')) %dopar% 
-        {
-          theta_temp <- theta
-          theta_temp[index] <- param_vec[i]
-          NumbersGame::GMM_objective(theta, df_observed, S)
-        }
-      obj = unlist(obj)
-      
-      ## kill finished tasks
-      parallel::stopCluster(cl)
-      
-  }else{
-      ##### sequenctial computation #####
-      # store the values of obj. func. to `obj`
-      obj <- numeric(length(param_vec))
-      
-      # compute onj. func. for each parameter
-      for(i in seq_along(param_vec)){
-        theta_temp <- theta
-        theta_temp[index] <- param_vec[i]
-        obj[i] <- GMM_objective(theta_temp, df_observed, S)
-      }
-    }
-  
+  # compute onj. func. for each parameter
+  for(i in seq_along(param_vec)){
+    theta_temp <- theta
+    theta_temp[index] <- param_vec[i]
+    obj[i] <- GMM_objective(theta_temp, df_observed, S)
+  }
+
   # To plot obj. func., make a data frame.
   df_obj <- tibble(
     param = param_vec,

@@ -1,30 +1,11 @@
-compute_P <- function(theta, S = 1000, parallel = TRUE){
+compute_P <- function(theta, S = 1000){
   e_vec <- -20:20    # each state (bin)
   result <- array(dim = c(S, length(e_vec)))   # S x 41  array
-  
-  # compute m_opt for each e (b)
-  if(parallel == TRUE){
-    # parallel computation
-    
-    ## register
-    library(doParallel)
-    cl <- parallel::makePSOCKcluster(4)
-    doParallel::registerDoParallel(cl)
-    
-    result <- foreach (i = seq_along(e_vec),
-                    .packages = c('dplyr', 'purrr', 'NumbersGame','tidyr'),
-                    .combine = 'cbind') %dopar% {
-                      compute_optimal_manipulation_for_e(e_vec[i], theta, S)$R
-                    }
-    
-    ## kill finished tasks
-    parallel::stopCluster(cl)
-  }else{
-    # sequential computation
-    for(i in seq_along(e_vec)){
-      result_temp <- compute_optimal_manipulation_for_e(e_vec[i], theta, S)
-      result[,i] <- result_temp$R        
-    }
+
+  # sequential computation
+  for(i in seq_along(e_vec)){
+    result_temp <- compute_optimal_manipulation_for_e(e_vec[i], theta, S)
+    result[,i] <- result_temp$R        
   }
 
   # compute P
