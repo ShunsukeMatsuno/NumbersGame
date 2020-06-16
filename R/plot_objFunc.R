@@ -1,4 +1,4 @@
-plot_objFunc <- function(theta, index, param_vec, df_observed, S = 1000, parallel = FALSE){
+plot_objFunc <- function(theta, index, param_vec, df_observed, S = 1000){
   # This function plots the objective function for each value of parameter.
   # index = 1 (eta; marginal cost),
   #         2 (gamma; curvature),
