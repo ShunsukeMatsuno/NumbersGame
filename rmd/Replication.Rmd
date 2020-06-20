@@ -44,7 +44,6 @@ gamma <- 2.0817    # curvature
 psi2 <- 0.8201   # variance
 zeta <- 3.7105    # variance multiplier
 theta <- c(eta, gamma, psi2, zeta)
-
 ```
 ## Benefit function
 - Since the estimates of full model (coefficients on polynomials) are not reported, I approximate the capital market benefit function by `compute_benefit.R`.
@@ -54,19 +53,19 @@ theta <- c(eta, gamma, psi2, zeta)
 - For the computational ease, I set the number of firms (observations) to $10,000$.
     - In BKR, the number of observations is $49,604$.
 - I use the following multinomial distribution as a discretized normal:
+
 $$
 e \sim \textit{Multi}(N, 1, P)\\
 \mathcal{X} = \{ -20,-19,\dots,0,\dots,19,20 \} \\
 P = (\phi(-20),\dots,\phi(20))\qquad (\text{normilized})
 $$
 
-```{r}
+```{r,cache=TRUE}
 # number of firms
 N <- 100000
 sigma <- 5
 
 df_firm <- simulate_firm(S = N, sigma)
-
 
 ggplot(df_firm, aes(x = e)) +
   geom_bar() +
@@ -90,7 +89,7 @@ $$
 \end{cases}
 $$
 
-```{r}
+```{r, cache=TRUE}
 df_firm_utility <- compute_optimal_manipulation_simulated(df_firm, theta, S = N)
 df_firm_utility
 ```
@@ -117,6 +116,12 @@ qplot(df_firm_utility$R, geom = 'bar', xlim = c(-11,11), xlab = 'reported')
 df_observed <- df_firm_utility %>%      # df_firm_utility is the 'true' data
   select(firm, R)                       # Discard the information that cannot be observed (by researcher)
 df_observed
+
+# save data
+save(df_observed, file = '../output/data/df_observed.RData')
+
+# load data
+load(file = '../output/data/df_observed.RData')
 ```
 ## Step 1. Candidate $\theta$
 - I set the initial $\theta$ to be the true $\theta$.
@@ -159,7 +164,7 @@ df_pi_x <- full_join(df_pi, df_x, by = 'bin') %>%
   pivot_longer(-bin, names_to = 'type', values_to = 'freq')
 
 g <- ggplot(df_pi_x, aes(x = bin, y = freq, fill = type)) +
-  geom_bar(aes(fill = type), stat = 'identity', position = 'dodge', alpha =0.7)+
+  geom_bar(aes(fill = type), stat = 'identity', position = 'dodge', alpha =1 )+
   xlim(-20,20) +
   scale_fill_hue(name = "type", labels = c(count_e = "inverted latent", count_R ='reported'))
 
@@ -211,7 +216,7 @@ GMM_objective(theta_init, df_observed)
 
 - Let's see the shape of objective function w.r.t. each parameter.
 ```{r, cache=TRUE}
-S <- 100000
+S <- 50000
 
 eta <- seq(0.2, 1, .05)
 plot_objFunc(theta, 1, eta, df_observed, S = S)
@@ -228,7 +233,8 @@ plot_objFunc(theta, 4, zeta, df_observed, S = S)
 ```
 
 ##### Computational burdern of BKR method
-- Let's see the time it take for each iteration given the number of simulations
+- Let's see the time it take for each iteration given the number of simulations.
+
 ```{r}
 S <- 1000
 system.time(GMM_objective(theta_init, df_observed, S))
@@ -250,28 +256,35 @@ system.time(GMM_objective(theta_init, df_observed, S))
 S <- 100000
 df_simulated <- simulate_firm(sigma, S)
 
-optim_result <- optim(par = c(0.3, 1.5, 1, 3),
-                      fn = CMD_obj,
-                      df_observed = df_observed,
-                      df_simulated = df_simulated,
-                      S = S,
-                      method = 'Nelder-Mead')
-optim_result
+# # optimization
+# optim_result <- optim(par = c(0.3, 1.5, 1, 3),
+#                       fn = CMD_obj,
+#                       df_observed = df_observed,
+#                       df_simulated = df_simulated,
+#                       S = S,
+#                       method = 'Nelder-Mead')
+# optim_result
 ```
     
 
 ```{r, cache=TRUE}
-eta <- seq(0.2, 1, .05)
-plot_objFunc_CMD(theta, 1, eta,  df_observed = df_observed, df_simulated = df_simulated, S = S, parallel = TRUE)
+graphs_CMD <- list()
 
-gamma <- seq(1, 5, .1)
-plot_objFunc_CMD(theta, 2, gamma, df_simulated, df_observed,  S = S, parallel = TRUE)
+eta <- seq(0.2, 1, .05)
+graphs_CMD[[1]] <- plot_objFunc_CMD(theta, 1, eta,  df_observed = df_observed, df_simulated = df_simulated, S = S, parallel = TRUE)
+
+gamma <- seq(1, 5, .2)
+graphs_CMD[[2]] <- plot_objFunc_CMD(theta, 2, gamma, df_simulated, df_observed,  S = S, parallel = TRUE)
 
 psi2 <- seq(0.1, 1.5, .1)
-plot_objFunc_CMD(theta, 3, psi2, df_simulated, df_observed,  S = S, parallel = TRUE)
+graphs_CMD[[3]] <- plot_objFunc_CMD(theta, 3, psi2, df_simulated, df_observed,  S = S, parallel = TRUE)
 
-zeta <- seq(2, 5, .3)
-plot_objFunc_CMD(theta, 4, zeta, df_simulated, df_observed,  S = S, parallel = TRUE)
+zeta <- seq(2, 5, .1)
+graphs_CMD[[4]] <- plot_objFunc_CMD(theta, 4, zeta, df_simulated, df_observed,  S = S, parallel = TRUE)
+
+for(i in 1:4){
+  ggsave(plot = graphs_CMD[[i]], file = paste0( '../output/plots/CMD_objectives_', i, '.png'))
+}
 ```
 
 ##### Computational burdern of BKR method
@@ -326,11 +339,32 @@ stopCluster(cl)
 - See what happens if we increase the marginal cost parameter, $\eta$.
     - Since manipulation becomes more costly, firms that find manipulation beneficial are limited to just below the zero threshold.
 - Since $\eta = 0.5$ gives distribution more suited to observed data in BKR, in what follows I use $\eta = 0.5$ as a true value.
-```{r}
+```{r, cache=TRUE}
 theta_new <- theta
-theta_new[1] <- 1
+theta_new[1] <- 2
 
 df_firm_utility_new <- compute_optimal_manipulation_simulated(df_firm, theta = theta_new, S = N)
 plot_latent_reported(df_firm_utility_new)
-qplot(df_firm_utility_new$R, geom = 'bar', xlim = c(-11,11), xlab = 'reported')
 ```
+- Compare the reported distribution to the distribution with $\eta = 1$ (the one we reported in the first section).
+```{r, message = FALSE}
+df_firm_utility_aggregated <- df_firm_utility %>% 
+  group_by(R) %>% 
+  summarise('eta = 0.5' = n())
+
+df_firm_utility_new_aggregated <- df_firm_utility_new %>% 
+  group_by(R) %>% 
+  summarise('eta = 2' = n())
+
+df_compare = left_join(df_firm_utility_aggregated, df_firm_utility_new_aggregated) %>% pivot_longer(-R, names_to = 'type', values_to = 'freq') 
+
+# ggplot(df_compare, aes(x = R, y = freq, fill = type)) +
+#     geom_bar(aes(fill = type), stat = 'identity', position = 'dodge')+
+#     xlim(-21,21) 
+
+ggplot(df_compare, aes(x = R, y = freq, fill = type)) +
+    geom_line(aes(color = type), size = 1)+
+    xlim(-21,21) 
+```
+
+
