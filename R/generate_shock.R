@@ -1,7 +1,8 @@
 generate_shock <- function(m_opt, e, theta){
   # This function generates uncertainty according to the chosen amount of manipulation.
-  if(m_opt == 0){
+  if(m_opt == 0 | theta[3] == 0){
     # If the firm decides no to manipulate, there is no uncertainty 
+    # If psi2 = 0, there is no uncertanty
     eps = 0
   }else{
     # Since e + m + eps should be in [-20, 20], we use (discretized) truncated normal distribution

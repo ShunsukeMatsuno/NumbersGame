@@ -1,13 +1,4 @@
-CMD_obj <- function(theta, df_observed, df_simulated, S, opt_fix = rep(NA, 4)){
-  
-  # Check if any of opt is not NA
-  if ( any(!sapply(opt_fix, is.na)) ) {
-    i = !sapply(opt_fix, is.na)
-    # Fix non-NA values
-    theta[i] <- opt_fix[i]
-  }
-  
-  
+CMD_obj <- function(theta, df_observed, df_simulated, S){
   
   ###### observed MLE ######
   df_reported <- count_all_bins(df_observed) %>% 

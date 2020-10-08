@@ -9,3 +9,6 @@ dplyr
 stringr
 forcats
 NumbersGame
+foreach
+iterators
+doParallel
