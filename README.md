@@ -6,8 +6,9 @@
 
 # Files
 - `rmd/Replication.Rmd` is the main script. The script is exported as `html` file, which is named `rmd/Replication.html`.
+- **Download `rmd/Replication.html` and open the file with a broser (ex. Chrome)**.
     - All the original functions that appear in `Replication.Rmd` are stored in `R` directory.
-- `SummaryBKR.pdf` is a summary of BKR's estimation method.
+- `NumbersGame_Summary.pdf` is a summary of BKR's estimation method.
 - If you have any comments or corrections, please post on Issues or email me (contact info. appears below).
 
 # Contact Information
