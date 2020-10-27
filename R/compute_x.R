@@ -8,5 +8,4 @@ compute_x <- function(P, df_pi){
   
   return(df_x)
   
-  
 }

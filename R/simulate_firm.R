@@ -2,7 +2,6 @@ simulate_firm <- function(sigma, S){
   # This function simulates firms latent earning surprise distribution
   # The distirubiton is assumed to be multinomial distribution with normal density probablitities.
   # sigma: the sd of normal dist
-
   
   df_firm <- tibble(
     firm = 1:S,

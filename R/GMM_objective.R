@@ -25,7 +25,7 @@ GMM_objective <- function(theta, df_observed, S = 1000){
   
   # GMM objective 
   
-  # weighting matrix
+  # TODO: what weighting matrix?
   
   
   return(sum(obj^2))

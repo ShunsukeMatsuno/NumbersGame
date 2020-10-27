@@ -28,7 +28,7 @@ easypackages::libraries('tidyverse', 'ggplot2', 'NumbersGame')
 
 
 # Introduction
-- This note replicates Bird, Karolyi, and Ruchti (BKR; 2019, JAE).
+- This note replicates Bird, Karolyi, and Ruchti 'Understanding the “numbers game"' (BKR; 2019, JAE).
 
 # Simulating the data
 - Since I don't have access to the original data, I simulate the "observed" data using the estimated parameters in BKR.
@@ -38,13 +38,14 @@ easypackages::libraries('tidyverse', 'ggplot2', 'NumbersGame')
 ```{r}
 set.seed(2020)
 
-# Table 4
+# The estimated values that apperar in Table 4
 eta <- 0.5  # marginal cost
 gamma <- 2.0817    # curvature
 psi2 <- 0.8201   # variance
 zeta <- 3.7105    # variance multiplier
 theta <- c(eta, gamma, psi2, zeta)
 ```
+
 ## Benefit function
 - Since the estimates of full model (coefficients on polynomials) are not reported, I approximate the capital market benefit function by `compute_benefit.R`.
 
@@ -59,6 +60,8 @@ e \sim \textit{Multi}(N, P)\\
 \mathcal{X} = \{ -20,-19,\dots,0,\dots,19,20 \} \\
 P = (\phi(-20),\dots,\phi(20)))
 $$
+
+- where
     - $\phi(\cdot)$ is the pdf of normal distribution with mean zero and variance $\sigma$.
     - I set $\sigma = 0.5$.
     - Each elemnt of $P$ is normalized so that $\sum_{b=-20}^{20}\phi(b)$ = 1$.
@@ -73,7 +76,8 @@ df_firm <- simulate_firm(S = N, sigma)
 
 ggplot(df_firm, aes(x = e)) +
   geom_bar() +
-  xlim(-21, 21)
+  xlim(-21, 21) +
+  theme_bw()
 ```
 
 ## Manipulation
@@ -91,23 +95,26 @@ $$
 0.05R+0.5 & R\ge0
 \end{cases}
 $$
+- `compute_optimal_manipulation_simulated.R` randomly draws $\beta$ for each firm and computes $m^*$ for each firm.
 
 ```{r, cache=TRUE}
 df_firm_utility <- compute_optimal_manipulation_simulated(df_firm, theta, S = N)
 df_firm_utility
 ```
 
+- `plot_latent_reported.R` plots the latent distribution and the reported distribution.
 ```{r}
 # plot
 plot_latent_reported(df_firm_utility)
 ```
 
-- The 'empirical' distribution of earnings surprises, $R$, is a bit drastic than the actual empirical distribution.
+- The 'empirical' distribution of earnings surprises above is a bit drastic than BKR's empirical distribution.
     - Compare the following graph with Fig.2.
     - This is because my simulation assumes that the empirical distribution is solely determined by the optimization behavior of BKR's model, while in reality variety of other factors come into play.
     
 ```{r}
-qplot(df_firm_utility$R, geom = 'bar', xlim = c(-11,11), xlab = 'reported')
+qplot(df_firm_utility$R, geom = 'bar', xlim = c(-11,11), xlab = 'reported') +
+  theme_bw()
 ```
 
 
@@ -116,12 +123,12 @@ qplot(df_firm_utility$R, geom = 'bar', xlim = c(-11,11), xlab = 'reported')
 - Regarding the simulated data as 'observed' data, I recover the parameter $\theta$ by BKR method.
 - See `SummaryBKR.pdf` for the step-by-step estimation procedure.
 ```{r}
-# df_observed <- df_firm_utility %>%      # df_firm_utility is the 'true' data
-#   select(firm, R)                       # Discard the information that cannot be observed (by researcher)
-# df_observed
-# 
-# # save data
-# save(df_observed, file = '../output/data/df_observed.RData')
+df_observed <- df_firm_utility %>%      # df_firm_utility is the 'true' data
+  select(firm, R)                       # Discard the information that cannot be observed (by researcher)
+df_observed
+
+# save data
+save(df_observed, file = '../output/data/df_observed.RData')
 
 # load data
 load(file = '../output/data/df_observed.RData')
@@ -136,7 +143,9 @@ theta_init <- theta
 - I compute the transition matrix, $P$.
 - Considering the computational cost, I set the number of simulations $S$ to be $1,000$.
     - The original paper uses $S=10,000$.
-  
+- `compute_P.R` computes the matrix $P(\theta)$ that maps latent earnings to reported earnings.
+    - `compute_P.R` internally calls `compute_optimal_manipulation_for_e.R`, which computes the empirical probability of manipulation for each bin.
+    - `compute_P()` uses parallel computation by default. If you prefer an usual sequential computation, set `parallel = FALSE`.
 ```{r, message=FALSE}
 S <- 1000   # number of simulations
 
@@ -150,6 +159,7 @@ P <- compute_P(theta_init, S)
 - Observed bins that are outside $[-20,20]$ is excluded from the data.
 ```{r}
 df_pi <- compute_pi(df_observed)
+df_pi
 ```
 
 
@@ -157,6 +167,7 @@ df_pi <- compute_pi(df_observed)
 
 ```{r}
 df_x <- compute_x(P, df_pi)
+df_x
 ```
 
 
@@ -169,13 +180,15 @@ df_pi_x <- full_join(df_pi, df_x, by = 'bin') %>%
 g <- ggplot(df_pi_x, aes(x = bin, y = freq, fill = type)) +
   geom_bar(aes(fill = type), stat = 'identity', position = 'dodge', alpha =1 )+
   xlim(-20,20) +
-  scale_fill_hue(name = "type", labels = c(count_e = "inverted latent", count_R ='reported'))
+  scale_fill_hue(name = "type", labels = c(count_e = "inverted latent", count_R ='reported')) +
+  theme_bw()
 
 plot(g)
 ```
 
 ## Step 4 Optimizetion
-- Lastly, using GMM (more precisely, SMM), I estimate the parameter.
+- Lastly, using SMM, I estimate the parameter.
+    - This estimation method might be problematic since the "moment condition" is not grounded on theory.
 - The objective function is 
 $$
 L(\theta) = \left[\left(\begin{array}{l}
@@ -192,6 +205,13 @@ L(\theta) = \left[\left(\begin{array}{l}
 \boldsymbol{x}_{S}(\theta)_{(1,\ldots T-1)}
 \end{array}\right)\right]
 $$
+
+- `GMM_objective.R` computes the value of objective function for a candidate set of parameters.
+    - This function proceeds as follows:
+    - Compute $P$ by `compute_P.R`.
+    - Compute $\pi$ and $x$ by `compute_x.R` and `compute_pi.R`
+    - Compute the objective funciton.
+
 ```{r}
 GMM_objective(theta_init, df_observed)
 ```
@@ -199,6 +219,7 @@ GMM_objective(theta_init, df_observed)
 - Finally, I optimize the GMM objective function.
     - In optimization, the number of simulation, $S$, should be at least $100,000$ to get a reasonable result.
     - However, since this optimization takes a lot of time, I set $S = 10,000$.
+    - Delete the commentout to execute the optimization.
 ```{r GMM, cache=TRUE}
 # # Nelder-Mead
 # optim_result <- optim(par = c(0.5, 2, 1, 4),
@@ -221,7 +242,7 @@ GMM_objective(theta_init, df_observed)
 ```{r, cache=TRUE}
 S <- 50000
 
-eta <- seq(0.2, 1, .05)
+eta <- seq(0.2, 1, .1)
 plot_objFunc(theta, 1, eta, df_observed, S = S)
 
 gamma <- seq(1, 5, .1)
@@ -253,10 +274,12 @@ system.time(GMM_objective(theta_init, df_observed, S))
 
 
 ### Original simulated obj
-- The number of simulation $S$ should be at least $100,000$ to get reasonable result.
-    - We need to specify the variance, which I assume to 5
-- Since $\zeta$ seems not to be identified, I fiexed $zeta = 3.71$, the true value.
-
+- Alternatively, as BKR briefly mentioned, we can impose a parametric assumption on the latent distribution.
+- `CMD_obj.R` computes the squared some of difference between inverted probability and the normal probablity for each bin.
+    - The number of simulation $S$ should be at least $100,000$ to get reasonable result.
+    - We need to specify the variance of the latent distribution, which I assume to be $5$.
+- Since $\zeta$ seems not to be identified, I fixed $\zeta = 3.71$, the true value.
+- I focus on `\eta` in this optimization.
 ```{r MD, cache = TRUE}
 # simulate data
 S <- 100000
@@ -294,9 +317,9 @@ for(i in 1:4){
 }
 ```
 
-##### Computational burdern of BKR method
+##### Computational burdern of the alternative method
 - Let's see the time it take for each iteration given the number of simulations.
-    - Notice that these computations are NOT parallelized unlike BKR method.
+    - Notice that these computations are NOT paralleled unlike BKR method.
 ```{r}
 S <- 1000
 df_simulated <- simulate_firm(sigma, S)
@@ -314,7 +337,7 @@ system.time(CMD_obj(theta, df_observed, df_simulated, S))
 #### parallel
 ```{r}
 # simulate data
-S <- 100
+S <- 10000
 df_simulated <- simulate_firm(sigma, S)
 
 eta <- seq(0.2, 1, .05)
@@ -349,7 +372,7 @@ stopCluster(cl)
 
 ```{r, cache=TRUE}
 theta_new <- theta
-theta_new[1] <- 2
+theta_new[1] <- 2     # increase the marginal cost to one
 
 df_firm_utility_new <- compute_optimal_manipulation_simulated(df_firm, theta = theta_new, S = N)
 plot_latent_reported(df_firm_utility_new)
@@ -368,7 +391,8 @@ df_compare = left_join(df_firm_utility_aggregated, df_firm_utility_new_aggregate
 
 ggplot(df_compare, aes(x = R, y = freq, fill = type)) +
     geom_line(aes(color = type), size = 1)+
-    xlim(-21,21) 
+    xlim(-21,21) +
+    theme_bw()
 ```
 
 

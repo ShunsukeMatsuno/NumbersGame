@@ -8,7 +8,7 @@ compute_P <- function(theta, S = 1000, parallel = TRUE){
     
     ## register
     library(doParallel)
-    cl <- parallel::makePSOCKcluster(4)
+    cl <- parallel::makePSOCKcluster(parallel::detectCores(logical = FALSE))
     doParallel::registerDoParallel(cl)
     
     result <- foreach (i = seq_along(e_vec),

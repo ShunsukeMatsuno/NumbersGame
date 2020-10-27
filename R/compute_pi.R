@@ -1,5 +1,5 @@
 compute_pi <- function(df_observed){
-  # This function returns \pi, the empirical earnings surprise distrbution.
+  # This function returns \pi, the empirical earnings surprise distribution.
   
   # observed bins
   df_pi_observed <- df_observed %>% 
