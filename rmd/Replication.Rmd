@@ -3,15 +3,9 @@ title: "Replication of BKR"
 author: "Shunsuke Matsuno"
 date: "2020/6/1"
 output:
-  html_document:
-    code_folding: show
-    df_print: paged
-    number_sections: no
-    theme: united
-    toc: yes
-    toc_float: no
-  pdf_document:
-    toc: yes
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
 ---
 
 ```{r settings, echo=FALSE}
@@ -334,37 +328,6 @@ df_simulated <- simulate_firm(sigma, S)
 system.time(CMD_obj(theta, df_observed, df_simulated, S))
 ```
 
-#### parallel
-```{r}
-# simulate data
-S <- 10000
-df_simulated <- simulate_firm(sigma, S)
-
-eta <- seq(0.2, 1, .05)
-
-# store the values of obj. func. to `obj`
-obj <- numeric(length(eta))
-
-# compute onj. func. for each parameter
-library(doParallel)
-cl <- makePSOCKcluster(4)
-doParallel::registerDoParallel(cl)
-
-
-system.time(
-obj <- foreach (i = seq_along(eta),
-        .packages = c('dplyr', 'purrr', 'NumbersGame'),
-        .combine = 'rbind') %dopar% {
-  theta_temp <- theta
-  theta_temp[1] <- eta[i]
-  NumbersGame::CMD_obj(theta, df_observed, df_simulated, S)
-}
-)
-qplot(eta, obj)
-
-stopCluster(cl)
-```
-
 
 ## Counterfacturals 
 - See what happens if we increase the marginal cost parameter, $\eta$.
@@ -377,6 +340,7 @@ theta_new[1] <- 2     # increase the marginal cost to one
 df_firm_utility_new <- compute_optimal_manipulation_simulated(df_firm, theta = theta_new, S = N)
 plot_latent_reported(df_firm_utility_new)
 ```
+
 - Compare the reported distribution to the distribution with $\eta = 1$ (the one we reported in the first section).
 ```{r, message = FALSE}
 df_firm_utility_aggregated <- df_firm_utility %>% 
