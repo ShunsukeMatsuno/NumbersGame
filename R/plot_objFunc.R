@@ -35,6 +35,7 @@ plot_objFunc <- function(theta, index, param_vec, df_observed, S = 1000){
   g <- ggplot(df_obj, aes(x = param, y = obj)) +
     geom_point(size = 2) + 
     xlab(x_label) +
-    geom_vline(aes(xintercept = theta[index]), linetype = 'dotted')
+    geom_vline(aes(xintercept = theta[index]), linetype = 'dotted') +
+    theme_bw()
   plot(g)
 }
